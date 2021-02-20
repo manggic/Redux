@@ -50,9 +50,11 @@ store.dispatch( addArticle({ title: 'React Redux Tutorial for Beginners', id: 1 
 
 ```
 function mapDispatchToProps( dispatch ) {
-    addArticle: function(article) {
+    return {
+      addArticle: function(article) {
          dispatch(addArticle(article))
      }
+    }  
 }
 
 const mapStateToProps = (state) => {
@@ -97,3 +99,114 @@ function forbiddenWordsMiddleware({ getState, dispatch }) {
 * calling Fetch from an action creator does not work
 * That's because Redux is expecting objects as actions, but we're trying to return a Promise.
 * With redux-thunk (it's a middleware) we can overcome the problem and return functions from action creators. This way we can call APIs, delay the dispatch of an action, and more
+
+## Modern Redux with Redux Toolkit
+
+* With configureStore from Redux Toolkit we can simplify store creation.
+> npm i @reduxjs/toolkit
+
+* configureStore accepts a configuration object where you can define:
+ 
+     - a root reducer, or an object of slices
+     - your middleware.
+     - optional store enhancers
+     - a preloaded state
+
+```
+const store  = configureStore({
+    reducer: {
+         auth : authReducer 
+    },
+    
+    middleware
+}  )
+```
+* createAction
+    -  With createAction we can get rid of action creators and named actions to condense all in one place
+       
+> const loginSuccess = createAction("LOGIN_SUCCESS"); // Creates an action creator
+> store.dispatch(loginSuccess("aPayload"))  //Calls the action creator
+ 
+* createReducer
+    -  createReducer function from Redux Toolkit takes an initial state, and a mapping object where:
+         * properties in this mapping are action types
+         * values are reducing function
+    - Wait! createReducer really shines when dealing with mutations. Under the hood it uses immer, which allows for writing mutative logic, which in reality does not alter the original object
+
+* createSlice 
+    -  It is able to keep everything in a single place: reducers, action creators, state.
+
+```
+const authSlice = createSlice({
+  name: "auth",
+  initialState: authState,
+  reducers: {
+    loginSuccess: (state, action) => {
+      state.token = action.payload;
+    },
+    loginFailed: (state, action) => {
+      state.error = action.payload;
+    },
+  },
+});
+
+const { loginSuccess, loginFailed } = authSlice.actions;
+const authReducer = authSlice.reducer;
+```
+
+* The slice name is the action prefix. For example if I dispatch:
+> store.dispatch( loginSuccess("some_asasa_token") )
+* The generated action is:
+> { type: "auth/loginSuccess", payload: "some_asasa_token" }
+
+* The "case reducers" are the same as a classic switch block of a reducer. This reducer:
+
+```
+// classic reducer
+function authReducer(state = authState, action) {
+  switch (action.type) {
+    case LOGIN_SUCCESS:
+      // return the next state
+    case LOGIN_FAILED:
+      // return the next state
+    default:
+      return state;
+  }
+}
+```
+
+* Translates to the reducers key of the slice:
+```
+  reducers: {
+    loginSuccess: (state, action) => {
+      state.token = action.payload;
+    },
+    loginFailed: (state, action) => {
+      state.error = action.payload;
+    },
+  }
+
+```
+* In exchange createSlice returns action creators:
+> const { loginSuccess, loginFailed } = authSlice.actions;
+* And a reducer as well:
+> const authReducer = authSlice.reducer;
+
+* The reducer is used in configureStore:
+```
+const authReducer = authSlice.reducer;
+
+const store = configureStore({
+  reducer: {
+    auth: authReducer,
+  },
+  middleware,
+});
+```
+
+
+
+
+
+
+
